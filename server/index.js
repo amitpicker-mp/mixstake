@@ -278,4 +278,4 @@ app.listen(PORT, () => {
   console.log(`\n🎰 MixStake demo server running on port ${PORT}`);
   console.log(`📊 Mixpanel token: ${MP_TOKEN}`);
   console.log(`⏰ Background simulator: fires every 30 minutes\n`);
-});
+})
