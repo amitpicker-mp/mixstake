@@ -406,9 +406,9 @@ function fireExperimentStarted(expName, variantName) {
 }
 
 // ═══════════════════════════════════════════
-// FETCH FLAGS FROM SERVER (calls Mixpanel Decide API)
+// FETCH FLAGS — using Mixpanel SDK directly (most reliable method)
 // ═══════════════════════════════════════════
-async function loadFlags() {
+function loadFlags() {
   // ── URL PARAMETER OVERRIDE (for demos) ──
   // Usage: mixstake.onrender.com?hero=variant_b&bonus=variant_a&vip=variant_a
   const params = new URLSearchParams(window.location.search);
@@ -416,59 +416,54 @@ async function loadFlags() {
   const urlBonus = params.get('bonus');
   const urlVip   = params.get('vip');
 
-  // If ANY url param is present, skip the API call and use url params directly
   if (urlHero || urlBonus || urlVip) {
     if (urlHero)  EXP.hero_banner_test = urlHero;
     if (urlBonus) EXP.bonus_offer_test = urlBonus;
     if (urlVip)   EXP.vip_lobby_test   = urlVip;
     setSuperProps();
-    // Still fire $experiment_started so Mixpanel records the exposure
     ['hero_banner_test','bonus_offer_test','vip_lobby_test'].forEach(exp => {
       fireExperimentStarted(exp, EXP[exp]);
     });
     applyVariants();
     return;
   }
-  try {
-    const res = await fetch('/api/flags', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ distinct_id: UID }),
+
+  // Use Mixpanel SDK to get feature flag values directly
+  // The SDK handles the Decide API call internally after init
+  // We wait for the SDK to be ready then read flag values
+  function readFlags() {
+    try {
+      const hero  = mixpanel.get_feature_flag_value('hero_banner_test');
+      const bonus = mixpanel.get_feature_flag_value('bonus_offer_test');
+      const vip   = mixpanel.get_feature_flag_value('vip_lobby_test');
+
+      if (hero)  EXP.hero_banner_test = hero;
+      if (bonus) EXP.bonus_offer_test = bonus;
+      if (vip)   EXP.vip_lobby_test   = vip;
+    } catch(e) {
+      // SDK method not available — fallback to random for demo
+      console.log('Flag SDK fallback — using random assignment');
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      EXP.hero_banner_test = pick(['control','variant_a','variant_b']);
+      EXP.bonus_offer_test = pick(['control','variant_a']);
+      EXP.vip_lobby_test   = pick(['control','variant_a']);
+    }
+
+    setSuperProps();
+
+    const fired = JSON.parse(sessionStorage.getItem('ms_exp_fired') || '{}');
+    ['hero_banner_test','bonus_offer_test','vip_lobby_test'].forEach(exp => {
+      if (!fired[exp]) {
+        fireExperimentStarted(exp, EXP[exp]);
+        fired[exp] = true;
+      }
     });
-    const data = await res.json();
-
-    // Mixpanel Decide API returns featureFlags object
-    // each key is the flag name, value is the variant string
-    const flags = data.featureFlags || data.flags || {};
-
-    if (flags.hero_banner_test) EXP.hero_banner_test = flags.hero_banner_test;
-    if (flags.bonus_offer_test) EXP.bonus_offer_test = flags.bonus_offer_test;
-    if (flags.vip_lobby_test)   EXP.vip_lobby_test   = flags.vip_lobby_test;
-
-  } catch(e) {
-    // Server unreachable (e.g. opening as local file) — random assignment for demo
-    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    EXP.hero_banner_test = pick(['control','variant_a','variant_b']);
-    EXP.bonus_offer_test = pick(['control','variant_a']);
-    EXP.vip_lobby_test   = pick(['control','variant_a']);
+    sessionStorage.setItem('ms_exp_fired', JSON.stringify(fired));
+    applyVariants();
   }
 
-  // 1. Register variants as super properties
-  setSuperProps();
-
-  // 2. Fire $experiment_started for each experiment
-  //    (only fires once per session per experiment via once check)
-  const fired = JSON.parse(sessionStorage.getItem('ms_exp_fired') || '{}');
-  ['hero_banner_test','bonus_offer_test','vip_lobby_test'].forEach(exp => {
-    if (!fired[exp]) {
-      fireExperimentStarted(exp, EXP[exp]);
-      fired[exp] = true;
-    }
-  });
-  sessionStorage.setItem('ms_exp_fired', JSON.stringify(fired));
-
-  // 3. Apply UI changes
-  applyVariants();
+  // Give SDK 1.5s to load flags from Mixpanel, then read them
+  setTimeout(readFlags, 1500);
 }
 
 // ═══════════════════════════════════════════
