@@ -45,6 +45,13 @@ app.post('/api/flags', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// ADMIN PAGE
+// ─────────────────────────────────────────────
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// ─────────────────────────────────────────────
 // TOKEN ENDPOINT — frontend fetches this so token never hardcoded in HTML
 // ─────────────────────────────────────────────
 app.get('/api/config', (req, res) => {
@@ -94,10 +101,22 @@ function fireBatch(batchSize = 40) {
       country: user.country,
       device: user.device,
       vip: user.vip,
-      hero_banner_variant: variant,
+      hero_banner_variant:  heroVariant,
+      bonus_offer_variant:  bonusVariant,
+      vip_lobby_variant:    vipVariant,
       simulated: true,
       source: 'mixstake_background_scheduler',
     };
+
+    // Assign experiment variants for this simulated user
+    const heroVariant  = pick(VARIANTS);
+    const bonusVariant = pick(['control','variant_a']);
+    const vipVariant   = pick(['control','variant_a']);
+
+    // Fire $experiment_started for each experiment (mirrors what the browser does)
+    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'hero_banner_test', '$variant_name': heroVariant,  simulated: true });
+    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'bonus_offer_test', '$variant_name': bonusVariant, simulated: true });
+    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'vip_lobby_test',   '$variant_name': vipVariant,   simulated: true });
 
     // Identify user with traits
     mixpanel.people.set(user.id, {
@@ -278,4 +297,4 @@ app.listen(PORT, () => {
   console.log(`\n🎰 MixStake demo server running on port ${PORT}`);
   console.log(`📊 Mixpanel token: ${MP_TOKEN}`);
   console.log(`⏰ Background simulator: fires every 30 minutes\n`);
-})
+});
