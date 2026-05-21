@@ -95,7 +95,17 @@ function fireBatch(batchSize = 40) {
 
   for (let i = 0; i < batchSize; i++) {
     const user = pick(FAKE_USERS);
-    const variant = pick(VARIANTS);
+
+    // Declare variants FIRST before using in baseProps
+    const heroVariant  = pick(VARIANTS);
+    const bonusVariant = pick(['control','variant_a']);
+    const vipVariant   = pick(['control','variant_a']);
+
+    // Fire $experiment_started for each experiment
+    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'hero_banner_test', '$variant_name': heroVariant,  simulated: true });
+    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'bonus_offer_test', '$variant_name': bonusVariant, simulated: true });
+    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'vip_lobby_test',   '$variant_name': vipVariant,   simulated: true });
+
     const baseProps = {
       segment: user.segment,
       country: user.country,
@@ -107,16 +117,6 @@ function fireBatch(batchSize = 40) {
       simulated: true,
       source: 'mixstake_background_scheduler',
     };
-
-    // Assign experiment variants for this simulated user
-    const heroVariant  = pick(VARIANTS);
-    const bonusVariant = pick(['control','variant_a']);
-    const vipVariant   = pick(['control','variant_a']);
-
-    // Fire $experiment_started for each experiment (mirrors what the browser does)
-    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'hero_banner_test', '$variant_name': heroVariant,  simulated: true });
-    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'bonus_offer_test', '$variant_name': bonusVariant, simulated: true });
-    mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'vip_lobby_test',   '$variant_name': vipVariant,   simulated: true });
 
     // Identify user with traits
     mixpanel.people.set(user.id, {
