@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MixStake Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#0A0A0C;color:#F0EDE6;min-height:100vh;padding:2rem;}
+h1{font-size:20px;font-weight:500;color:#C9A84C;margin-bottom:4px;}
+.sub{font-size:13px;color:#4A4858;margin-bottom:2rem;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem;}
+.card{background:#111116;border:1px solid rgba(201,168,76,0.15);border-radius:14px;padding:1.5rem;}
+.card-title{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#4A4858;margin-bottom:1rem;}
+.stat{font-size:32px;font-weight:500;color:#F0EDE6;margin-bottom:4px;}
+.stat-label{font-size:12px;color:#8A8790;}
+.btn{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .2s;width:100%;margin-bottom:8px;}
+.btn-gold{background:linear-gradient(135deg,#C9A84C,#8B6D2A);color:#fff;}
+.btn-gold:hover{filter:brightness(1.1);}
+.btn-ghost{background:transparent;border:1px solid rgba(201,168,76,0.35);color:#F0EDE6;}
+.btn-ghost:hover{border-color:#C9A84C;color:#C9A84C;}
+.btn-red{background:transparent;border:1px solid rgba(232,75,75,0.4);color:#E84B4B;}
+.btn-red:hover{background:rgba(232,75,75,0.1);}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:none;transform:none;}
+input[type=range]{width:100%;margin:8px 0;accent-color:#C9A84C;}
+.range-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#8A8790;margin-bottom:4px;}
+.range-val{color:#C9A84C;font-weight:500;font-family:'DM Mono',monospace;}
+.log{background:#0A0A0C;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:1rem;height:200px;overflow-y:auto;font-family:'DM Mono',monospace;font-size:12px;color:#8A8790;}
+.log-entry{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03);}
+.log-entry.ok{color:#3DBA6A;}
+.log-entry.info{color:#C9A84C;}
+.log-entry.err{color:#E84B4B;}
+.variant-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
+.vbtn{padding:8px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(201,168,76,.2);background:transparent;color:#8A8790;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center;}
+.vbtn:hover{border-color:#C9A84C;color:#C9A84C;}
+.vbtn.active{background:rgba(201,168,76,.15);border-color:#C9A84C;color:#C9A84C;}
+.vbtn2{padding:8px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(201,168,76,.2);background:transparent;color:#8A8790;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center;}
+.vbtn2:hover{border-color:#C9A84C;color:#C9A84C;}
+.vbtn2.active{background:rgba(201,168,76,.15);border-color:#C9A84C;color:#C9A84C;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;}
+.badge-green{background:rgba(61,186,106,.15);color:#3DBA6A;}
+.badge-red{background:rgba(232,75,75,.15);color:#E84B4B;}
+.badge-gold{background:rgba(201,168,76,.15);color:#C9A84C;}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.sep{height:1px;background:rgba(255,255,255,.05);margin:1rem 0;}
+.url-box{background:#0A0A0C;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;color:#C9A84C;word-break:break-all;margin-bottom:8px;cursor:pointer;transition:border-color .2s;}
+.url-box:hover{border-color:rgba(201,168,76,.4);}
+.copied{color:#3DBA6A!important;border-color:rgba(61,186,106,.4)!important;}
+.progress-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#C9A84C,#8B6D2A);border-radius:2px;transition:width .3s;}
+</style>
+</head>
+<body>
+
+<h1>🎰 MixStake Admin</h1>
+<p class="sub">Control panel — don't share this URL publicly</p>
+
+<div class="grid">
+
+  <!-- STATUS -->
+  <div class="card">
+    <div class="card-title">Status</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+      <span class="badge badge-green"><span class="dot"></span>Server online</span>
+      <span class="badge badge-gold" id="mp-status-badge"><span class="dot"></span>Mixpanel connected</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div><div class="stat" id="total-fired">0</div><div class="stat-label">Events fired this session</div></div>
+      <div><div class="stat" id="next-batch">30:00</div><div class="stat-label">Next auto batch</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="timer-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- FIRE EVENTS -->
+  <div class="card">
+    <div class="card-title">Fire Events Now</div>
+    <div class="range-row">
+      <span>Batch size</span>
+      <span class="range-val" id="batch-display">50 events</span>
+    </div>
+    <input type="range" min="10" max="500" step="10" value="50" id="batch-size" oninput="document.getElementById('batch-display').textContent=this.value+' events'">
+    <button class="btn btn-gold" id="fire-btn" onclick="fireBatch()">⚡ Fire Batch Now</button>
+    <button class="btn btn-ghost" onclick="fireBatch(200)">🚀 Fire 200 Events</button>
+    <button class="btn btn-ghost" onclick="fireBatch(500)">💥 Fire 500 Events</button>
+  </div>
+
+  <!-- VARIANT SWITCHER -->
+  <div class="card">
+    <div class="card-title">Variant Switcher — Demo Links</div>
+    <div style="font-size:12px;color:#8A8790;margin-bottom:12px;">Click a URL to copy it. Share with prospect during demo to show different variants live.</div>
+
+    <div style="font-size:11px;color:#4A4858;margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase;">Hero Banner</div>
+    <div class="variant-btns" id="hero-btns">
+      <div class="vbtn active" onclick="setVariant('hero','control',this)">Control<br><span style="font-size:10px;opacity:.6">Dark gold</span></div>
+      <div class="vbtn" onclick="setVariant('hero','variant_a',this)">Variant A<br><span style="font-size:10px;opacity:.6">Light minimal</span></div>
+      <div class="vbtn" onclick="setVariant('hero','variant_b',this)">Variant B<br><span style="font-size:10px;opacity:.6">Red energy</span></div>
+    </div>
+
+    <div style="font-size:11px;color:#4A4858;margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase;margin-top:12px;">Bonus Offer</div>
+    <div class="two" id="bonus-btns">
+      <div class="vbtn2 active" onclick="setVariant('bonus','control',this)">Control<br><span style="font-size:10px;opacity:.6">$1,000 + spins</span></div>
+      <div class="vbtn2" onclick="setVariant('bonus','variant_a',this)">Variant A<br><span style="font-size:10px;opacity:.6">$50 free</span></div>
+    </div>
+
+    <div style="font-size:11px;color:#4A4858;margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase;margin-top:12px;">VIP Lobby</div>
+    <div class="two" id="vip-btns">
+      <div class="vbtn2 active" onclick="setVariant('vip','control',this)">Off</div>
+      <div class="vbtn2" onclick="setVariant('vip','variant_a',this)">On</div>
+    </div>
+
+    <div class="sep"></div>
+    <div style="font-size:11px;color:#4A4858;margin-bottom:8px;letter-spacing:.08em;text-transform:uppercase;">Generated Demo URL</div>
+    <div class="url-box" id="demo-url" onclick="copyURL()">https://mixstake.onrender.com</div>
+    <button class="btn btn-ghost" onclick="copyURL()">📋 Copy Demo URL</button>
+    <button class="btn btn-ghost" onclick="openDemo()">🔗 Open in New Tab</button>
+  </div>
+
+  <!-- SCHEDULER -->
+  <div class="card">
+    <div class="card-title">Auto Scheduler</div>
+    <div class="range-row">
+      <span>Interval</span>
+      <span class="range-val" id="interval-display">30 min</span>
+    </div>
+    <input type="range" min="1" max="60" step="1" value="30" id="interval-slider" oninput="updateInterval(this.value)">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+      <button class="btn btn-ghost" style="font-size:12px;padding:8px;" onclick="setInterval2(5)">5 min</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:8px;" onclick="setInterval2(15)">15 min</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:8px;" onclick="setInterval2(30)">30 min</button>
+    </div>
+    <div class="sep"></div>
+    <div class="range-row" style="margin-bottom:8px;">
+      <span>Events per batch</span>
+      <span class="range-val" id="auto-batch-display">40</span>
+    </div>
+    <input type="range" min="10" max="200" step="10" value="40" id="auto-batch-size" oninput="document.getElementById('auto-batch-display').textContent=this.value">
+    <button class="btn btn-gold" id="scheduler-btn" onclick="toggleScheduler()">▶ Start Scheduler</button>
+  </div>
+
+  <!-- EVENT LOG -->
+  <div class="card" style="grid-column:1/-1;">
+    <div class="card-title" style="display:flex;justify-content:space-between;">
+      <span>Event Log</span>
+      <span style="cursor:pointer;color:#4A4858;" onclick="clearLog()">Clear</span>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+
+</div>
+
+<script>
+const BASE = window.location.origin;
+let totalFired = 0;
+let schedulerActive = false;
+let schedulerTimer = null;
+let countdownTimer = null;
+let intervalMinutes = 30;
+let autoBatchSize = 40;
+let nextFireIn = intervalMinutes * 60;
+
+// Current variant selections
+let variants = { hero: 'control', bonus: 'control', vip: 'control' };
+
+// ── LOG ──
+function log(msg, type='info') {
+  const el = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  const time = new Date().toLocaleTimeString();
+  entry.textContent = `[${time}] ${msg}`;
+  el.insertBefore(entry, el.firstChild);
+}
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+// ── FIRE BATCH ──
+async function fireBatch(size) {
+  const batchSize = size || parseInt(document.getElementById('batch-size').value);
+  const btn = document.getElementById('fire-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Firing…';
+  log(`Firing batch of ${batchSize} events…`, 'info');
+  try {
+    const res = await fetch(`${BASE}/api/simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ size: batchSize })
+    });
+    const data = await res.json();
+    totalFired += batchSize;
+    document.getElementById('total-fired').textContent = totalFired.toLocaleString();
+    log(`✓ Fired ${batchSize} events successfully`, 'ok');
+  } catch(e) {
+    log(`✗ Error: ${e.message}`, 'err');
+  }
+  btn.disabled = false;
+  btn.textContent = '⚡ Fire Batch Now';
+}
+
+// ── SCHEDULER ──
+function toggleScheduler() {
+  const btn = document.getElementById('scheduler-btn');
+  if (schedulerActive) {
+    clearInterval(schedulerTimer);
+    clearInterval(countdownTimer);
+    schedulerActive = false;
+    btn.textContent = '▶ Start Scheduler';
+    btn.className = 'btn btn-gold';
+    log('Scheduler stopped', 'info');
+  } else {
+    autoBatchSize = parseInt(document.getElementById('auto-batch-size').value);
+    schedulerActive = true;
+    btn.textContent = '⏹ Stop Scheduler';
+    btn.className = 'btn btn-red';
+    nextFireIn = intervalMinutes * 60;
+    log(`Scheduler started — firing ${autoBatchSize} events every ${intervalMinutes} min`, 'ok');
+    fireBatch(autoBatchSize);
+    schedulerTimer = setInterval(() => {
+      fireBatch(autoBatchSize);
+      nextFireIn = intervalMinutes * 60;
+    }, intervalMinutes * 60 * 1000);
+    countdownTimer = setInterval(updateCountdown, 1000);
+  }
+}
+
+function updateCountdown() {
+  if (!schedulerActive) return;
+  nextFireIn--;
+  if (nextFireIn < 0) nextFireIn = intervalMinutes * 60;
+  const mins = Math.floor(nextFireIn / 60);
+  const secs = nextFireIn % 60;
+  document.getElementById('next-batch').textContent =
+    `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  const pct = 100 - (nextFireIn / (intervalMinutes * 60) * 100);
+  document.getElementById('timer-bar').style.width = pct + '%';
+}
+
+function updateInterval(val) {
+  intervalMinutes = parseInt(val);
+  document.getElementById('interval-display').textContent = val + ' min';
+  nextFireIn = intervalMinutes * 60;
+  if (schedulerActive) {
+    clearInterval(schedulerTimer);
+    schedulerTimer = setInterval(() => {
+      fireBatch(autoBatchSize);
+      nextFireIn = intervalMinutes * 60;
+    }, intervalMinutes * 60 * 1000);
+    log(`Interval updated to ${val} min`, 'info');
+  }
+}
+
+function setInterval2(val) {
+  document.getElementById('interval-slider').value = val;
+  updateInterval(val);
+}
+
+// ── VARIANT SWITCHER ──
+function setVariant(type, value, el) {
+  variants[type] = value;
+  const groupId = type === 'hero' ? 'hero-btns' : type === 'bonus' ? 'bonus-btns' : 'vip-btns';
+  document.querySelectorAll(`#${groupId} .vbtn, #${groupId} .vbtn2`).forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  updateDemoURL();
+  log(`Set ${type} variant → ${value}`, 'info');
+}
+
+function updateDemoURL() {
+  const params = new URLSearchParams();
+  if (variants.hero !== 'control')  params.set('hero', variants.hero);
+  if (variants.bonus !== 'control') params.set('bonus', variants.bonus);
+  if (variants.vip !== 'control')   params.set('vip', variants.vip);
+  const query = params.toString();
+  const url = `${BASE}${query ? '?' + query : ''}`;
+  document.getElementById('demo-url').textContent = url;
+}
+
+function copyURL() {
+  const url = document.getElementById('demo-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const el = document.getElementById('demo-url');
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 2000);
+    log(`Copied: ${url}`, 'ok');
+  });
+}
+
+function openDemo() {
+  window.open(document.getElementById('demo-url').textContent, '_blank');
+}
+
+// ── INIT ──
+log('Admin panel loaded', 'ok');
+log(`Connected to: ${BASE}`, 'info');
+updateDemoURL();
+</script>
+</body>
+</html>
