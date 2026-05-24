@@ -359,7 +359,7 @@ mixpanel.init('5d00750a9ec9cec303dc27e371033fa8', {
   remote_settings_mode: 'fallback',
   record_mask_text_selector: '',
   record_block_selector: '',
-  flags: true
+  flags: {}
 });
 </script>
 
@@ -421,37 +421,30 @@ function loadFlags() {
     return;
   }
 
-  // Use mixpanel.flags.getVariantValue() — this is the correct SDK method
-  // that triggers $experiment_started automatically in the way Mixpanel's
-  // experiment engine recognises (linked to the Feature Flag system)
-  function readFlags() {
+  // Use the async getVariantValue which waits for flags to be ready
+  async function readFlagsAsync() {
     try {
-      // Each call to getVariantValue automatically fires $experiment_started
-      // internally via the SDK — no need to fire it manually
-      const hero  = mixpanel.flags.getVariantValue('hero_banner_test');
-      const bonus = mixpanel.flags.getVariantValue('bonus_offer_test');
-      const vip   = mixpanel.flags.getVariantValue('vip_lobby_test');
+      const hero  = await mixpanel.flags.getVariantValue('hero_banner_test',  'control');
+      const bonus = await mixpanel.flags.getVariantValue('bonus_offer_test',  'control');
+      const vip   = await mixpanel.flags.getVariantValue('vip_lobby_test',    'control');
 
-      if (hero)  EXP.hero_banner_test = hero;
-      if (bonus) EXP.bonus_offer_test = bonus;
-      if (vip)   EXP.vip_lobby_test   = vip;
+      EXP.hero_banner_test = hero  || 'control';
+      EXP.bonus_offer_test = bonus || 'control';
+      EXP.vip_lobby_test   = vip   || 'control';
 
-      console.log('Flags loaded:', EXP);
+      console.log('Flags loaded from Mixpanel:', EXP);
     } catch(e) {
-      // SDK flags API not available yet — fallback to random for demo
-      console.log('Flag SDK fallback:', e.message);
+      console.log('Flag SDK error — using random fallback:', e.message);
       const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
       EXP.hero_banner_test = pick(['control','variant_a','variant_b']);
       EXP.bonus_offer_test = pick(['control','variant_a']);
       EXP.vip_lobby_test   = pick(['control','variant_a']);
     }
-
     setSuperProps();
     applyVariants();
   }
 
-  // Wait for SDK to fully load flags from Mixpanel servers
-  setTimeout(readFlags, 2000);
+  readFlagsAsync();
 }
 
 // ═══════════════════════════════════════════
