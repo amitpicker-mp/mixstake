@@ -358,7 +358,8 @@ mixpanel.init('5d00750a9ec9cec303dc27e371033fa8', {
   record_sessions_percent: 100,
   remote_settings_mode: 'fallback',
   record_mask_text_selector: '',
-  record_block_selector: ''
+  record_block_selector: '',
+  flags: true
 });
 </script>
 
@@ -397,13 +398,8 @@ function setSuperProps() {
   });
 }
 
-// Fire $experiment_started for a single experiment
-function fireExperimentStarted(expName, variantName) {
-  mixpanel.track('$experiment_started', {
-    '$experiment_name': expName,
-    '$variant_name':    variantName,
-  });
-}
+// NOTE: $experiment_started is now fired automatically by
+// mixpanel.flags.getVariantValue() — no manual firing needed
 
 // ═══════════════════════════════════════════
 // FETCH FLAGS — using Mixpanel SDK directly (most reliable method)
@@ -421,28 +417,29 @@ function loadFlags() {
     if (urlBonus) EXP.bonus_offer_test = urlBonus;
     if (urlVip)   EXP.vip_lobby_test   = urlVip;
     setSuperProps();
-    ['hero_banner_test','bonus_offer_test','vip_lobby_test'].forEach(exp => {
-      fireExperimentStarted(exp, EXP[exp]);
-    });
     applyVariants();
     return;
   }
 
-  // Use Mixpanel SDK to get feature flag values directly
-  // The SDK handles the Decide API call internally after init
-  // We wait for the SDK to be ready then read flag values
+  // Use mixpanel.flags.getVariantValue() — this is the correct SDK method
+  // that triggers $experiment_started automatically in the way Mixpanel's
+  // experiment engine recognises (linked to the Feature Flag system)
   function readFlags() {
     try {
-      const hero  = mixpanel.get_feature_flag_value('hero_banner_test');
-      const bonus = mixpanel.get_feature_flag_value('bonus_offer_test');
-      const vip   = mixpanel.get_feature_flag_value('vip_lobby_test');
+      // Each call to getVariantValue automatically fires $experiment_started
+      // internally via the SDK — no need to fire it manually
+      const hero  = mixpanel.flags.getVariantValue('hero_banner_test');
+      const bonus = mixpanel.flags.getVariantValue('bonus_offer_test');
+      const vip   = mixpanel.flags.getVariantValue('vip_lobby_test');
 
       if (hero)  EXP.hero_banner_test = hero;
       if (bonus) EXP.bonus_offer_test = bonus;
       if (vip)   EXP.vip_lobby_test   = vip;
+
+      console.log('Flags loaded:', EXP);
     } catch(e) {
-      // SDK method not available — fallback to random for demo
-      console.log('Flag SDK fallback — using random assignment');
+      // SDK flags API not available yet — fallback to random for demo
+      console.log('Flag SDK fallback:', e.message);
       const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
       EXP.hero_banner_test = pick(['control','variant_a','variant_b']);
       EXP.bonus_offer_test = pick(['control','variant_a']);
@@ -450,20 +447,11 @@ function loadFlags() {
     }
 
     setSuperProps();
-
-    const fired = JSON.parse(sessionStorage.getItem('ms_exp_fired') || '{}');
-    ['hero_banner_test','bonus_offer_test','vip_lobby_test'].forEach(exp => {
-      if (!fired[exp]) {
-        fireExperimentStarted(exp, EXP[exp]);
-        fired[exp] = true;
-      }
-    });
-    sessionStorage.setItem('ms_exp_fired', JSON.stringify(fired));
     applyVariants();
   }
 
-  // Give SDK 1.5s to load flags from Mixpanel, then read them
-  setTimeout(readFlags, 1500);
+  // Wait for SDK to fully load flags from Mixpanel servers
+  setTimeout(readFlags, 2000);
 }
 
 // ═══════════════════════════════════════════
