@@ -359,7 +359,7 @@ mixpanel.init('5d00750a9ec9cec303dc27e371033fa8', {
   remote_settings_mode: 'fallback',
   record_mask_text_selector: '',
   record_block_selector: '',
-  flags: {}
+  flags: true
 });
 </script>
 
@@ -424,9 +424,14 @@ function loadFlags() {
   // Use the async getVariantValue which waits for flags to be ready
   async function readFlagsAsync() {
     try {
-      const hero  = await mixpanel.flags.getVariantValue('hero_banner_test',  'control');
-      const bonus = await mixpanel.flags.getVariantValue('bonus_offer_test',  'control');
-      const vip   = await mixpanel.flags.getVariantValue('vip_lobby_test',    'control');
+      // loadFlags() explicitly fetches flags from Mixpanel servers
+      // required when flags module exists but hasn't auto-loaded yet
+      if (mixpanel.flags && mixpanel.flags.load_flags) {
+        await mixpanel.flags.load_flags();
+      }
+      const hero  = await mixpanel.flags.get_variant_value('hero_banner_test',  'control');
+      const bonus = await mixpanel.flags.get_variant_value('bonus_offer_test',  'control');
+      const vip   = await mixpanel.flags.get_variant_value('vip_lobby_test',    'control');
 
       EXP.hero_banner_test = hero  || 'control';
       EXP.bonus_offer_test = bonus || 'control';
