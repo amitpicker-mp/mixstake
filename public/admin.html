@@ -139,6 +139,13 @@ input[type=range]{width:100%;margin:8px 0;accent-color:#C9A84C;}
     <button class="btn btn-gold" id="scheduler-btn" onclick="toggleScheduler()">▶ Start Scheduler</button>
   </div>
 
+  <!-- UTM DEMO LINKS -->
+  <div class="card" style="grid-column:1/-1;">
+    <div class="card-title">🔗 UTM Demo Links — Click to open site with campaign attribution</div>
+    <div style="font-size:12px;color:#8A8790;margin-bottom:12px;">Each link opens MixStake with UTM parameters in the URL. The Mixpanel SDK will automatically capture them as event properties and set <code style="color:#C9A84C;">initial_utm_*</code> on the user profile. Open before your demo to generate real UTM-attributed session replays.</div>
+    <div class="utm-grid" id="utm-links"></div>
+  </div>
+
   <!-- EVENT LOG -->
   <div class="card" style="grid-column:1/-1;">
     <div class="card-title" style="display:flex;justify-content:space-between;">
@@ -150,8 +157,55 @@ input[type=range]{width:100%;margin:8px 0;accent-color:#C9A84C;}
 
 </div>
 
+<style>
+.utm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-bottom:8px;}
+.utm-link{background:#0A0A0C;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 14px;cursor:pointer;transition:border-color .2s;}
+.utm-link:hover{border-color:rgba(201,168,76,.4);}
+.utm-source{font-size:12px;font-weight:600;color:#C9A84C;margin-bottom:2px;}
+.utm-details{font-size:11px;color:#4A4858;font-family:'DM Mono',monospace;}
+</style>
+
 <script>
 const BASE = window.location.origin;
+
+// ── UTM DEMO LINKS ──
+const UTM_CAMPAIGNS = [
+  { label:'Google CPC — Casino UK',       source:'google',    medium:'cpc',         campaign:'casino_brand_uk',       content:'slots_banner',    term:'online+casino' },
+  { label:'Google CPC — Sportsbook',      source:'google',    medium:'cpc',         campaign:'sportsbook_football',   content:'odds_banner',     term:'sports+betting' },
+  { label:'Facebook — Slots Acquisition', source:'facebook',  medium:'paid_social', campaign:'slots_acquisition_uk',  content:'video_ad_1',      term:'' },
+  { label:'Facebook — VIP Recruitment',   source:'facebook',  medium:'paid_social', campaign:'vip_recruitment',       content:'carousel_vip',    term:'' },
+  { label:'Instagram — Jackpot Awareness',source:'instagram', medium:'paid_social', campaign:'jackpot_awareness',     content:'story_ad',        term:'' },
+  { label:'Affiliate — Casino UK',        source:'affiliate', medium:'affiliate',   campaign:'casino_affiliate_uk',   content:'partner_link',    term:'' },
+  { label:'Email — Weekly Promo',         source:'email',     medium:'email',       campaign:'weekly_promo_spins',    content:'cta_button',      term:'' },
+  { label:'Email — Reactivation',         source:'email',     medium:'email',       campaign:'reactivation_30d',      content:'cashback_offer',  term:'' },
+  { label:'Twitter — Jackpot Promo',      source:'twitter',   medium:'paid_social', campaign:'jackpot_promo',         content:'promoted_tweet',  term:'' },
+  { label:'Referral — Friend Invite',     source:'referral',  medium:'referral',    campaign:'friend_invite',         content:'invite_link',     term:'' },
+];
+
+function buildUTMUrl(c) {
+  let url = `${BASE}/?utm_source=${c.source}&utm_medium=${c.medium}`;
+  if (c.campaign) url += `&utm_campaign=${c.campaign}`;
+  if (c.content)  url += `&utm_content=${c.content}`;
+  if (c.term)     url += `&utm_term=${c.term}`;
+  return url;
+}
+
+function renderUTMLinks() {
+  const container = document.getElementById('utm-links');
+  if (!container) return;
+  container.innerHTML = UTM_CAMPAIGNS.map(c => {
+    const url = buildUTMUrl(c);
+    return `<div class="utm-link" onclick="openUTM('${url}')">
+      <div class="utm-source">${c.label}</div>
+      <div class="utm-details">${c.source} / ${c.medium}</div>
+    </div>`;
+  }).join('');
+}
+
+function openUTM(url) {
+  window.open(url, '_blank');
+  log(\`Opened: \${url}\`, 'ok');
+}
 let totalFired = 0;
 let schedulerActive = false;
 let schedulerTimer = null;
@@ -293,6 +347,7 @@ function openDemo() {
 log('Admin panel loaded', 'ok');
 log(`Connected to: ${BASE}`, 'info');
 updateDemoURL();
+renderUTMLinks();
 </script>
 </body>
 </html>
