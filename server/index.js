@@ -61,6 +61,28 @@ app.get('/api/config', (req, res) => {
 // ─────────────────────────────────────────────
 // SIMULATOR DATA
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// UTM DATA — realistic iGaming acquisition channels
+// ─────────────────────────────────────────────
+const UTM_CHANNELS = [
+  { utm_source: 'google',    utm_medium: 'cpc',          utm_campaign: 'casino_brand_uk',        utm_content: 'slots_banner',      utm_term: 'online casino' },
+  { utm_source: 'google',    utm_medium: 'cpc',          utm_campaign: 'sportsbook_football',    utm_content: 'odds_banner',       utm_term: 'sports betting' },
+  { utm_source: 'google',    utm_medium: 'cpc',          utm_campaign: 'live_casino_de',         utm_content: 'roulette_creative', utm_term: 'live casino' },
+  { utm_source: 'facebook',  utm_medium: 'paid_social',  utm_campaign: 'slots_acquisition_uk',  utm_content: 'video_ad_1',        utm_term: null },
+  { utm_source: 'facebook',  utm_medium: 'paid_social',  utm_campaign: 'vip_recruitment',        utm_content: 'carousel_vip',      utm_term: null },
+  { utm_source: 'instagram', utm_medium: 'paid_social',  utm_campaign: 'jackpot_awareness',      utm_content: 'story_ad',          utm_term: null },
+  { utm_source: 'affiliate', utm_medium: 'affiliate',    utm_campaign: 'casino_affiliate_uk',    utm_content: 'partner_link',      utm_term: null },
+  { utm_source: 'affiliate', utm_medium: 'affiliate',    utm_campaign: 'sportsbook_affiliate',   utm_content: 'odds_widget',       utm_term: null },
+  { utm_source: 'email',     utm_medium: 'email',        utm_campaign: 'weekly_promo_spins',     utm_content: 'cta_button',        utm_term: null },
+  { utm_source: 'email',     utm_medium: 'email',        utm_campaign: 'reactivation_30d',       utm_content: 'cashback_offer',    utm_term: null },
+  { utm_source: 'email',     utm_medium: 'email',        utm_campaign: 'vip_exclusive_offer',    utm_content: 'hero_banner',       utm_term: null },
+  { utm_source: 'organic',   utm_medium: 'organic',      utm_campaign: null,                     utm_content: null,                utm_term: null },
+  { utm_source: 'organic',   utm_medium: 'organic',      utm_campaign: null,                     utm_content: null,                utm_term: null },
+  { utm_source: 'direct',    utm_medium: 'none',         utm_campaign: null,                     utm_content: null,                utm_term: null },
+  { utm_source: 'twitter',   utm_medium: 'paid_social',  utm_campaign: 'jackpot_promo',          utm_content: 'promoted_tweet',    utm_term: null },
+  { utm_source: 'referral',  utm_medium: 'referral',     utm_campaign: 'friend_invite',          utm_content: 'invite_link',       utm_term: null },
+];
+
 const FAKE_USERS = Array.from({length: 60}, (_, i) => ({
   id: `mixstake_user_${String(i+1).padStart(3,'0')}`,
   segment: ['New Player','Regular','VIP','High Roller','Casual','At-Risk'][i % 6],
@@ -106,6 +128,9 @@ function fireBatch(batchSize = 40) {
     mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'bonus_offer_test', '$variant_name': bonusVariant, simulated: true });
     mixpanel.track('$experiment_started', { distinct_id: user.id, '$experiment_name': 'vip_lobby_test',   '$variant_name': vipVariant,   simulated: true });
 
+    // Assign a realistic UTM channel for this simulated user
+    const utmChannel = pick(UTM_CHANNELS);
+
     const baseProps = {
       segment: user.segment,
       country: user.country,
@@ -114,11 +139,25 @@ function fireBatch(batchSize = 40) {
       hero_banner_variant:  heroVariant,
       bonus_offer_variant:  bonusVariant,
       vip_lobby_variant:    vipVariant,
+      // UTM attribution — same property names Mixpanel JS SDK uses automatically
+      utm_source:   utmChannel.utm_source,
+      utm_medium:   utmChannel.utm_medium,
+      utm_campaign: utmChannel.utm_campaign,
+      utm_content:  utmChannel.utm_content,
+      utm_term:     utmChannel.utm_term,
       simulated: true,
       source: 'mixstake_background_scheduler',
     };
 
-    // Identify user with traits
+    // Identify user with traits + first-touch UTM attribution
+    // set_once mirrors what JS SDK does — only sets if not already set
+    mixpanel.people.set_once(user.id, {
+      initial_utm_source:   utmChannel.utm_source,
+      initial_utm_medium:   utmChannel.utm_medium,
+      initial_utm_campaign: utmChannel.utm_campaign,
+      initial_utm_content:  utmChannel.utm_content,
+      initial_utm_term:     utmChannel.utm_term,
+    });
     mixpanel.people.set(user.id, {
       '$name': user.id,
       segment: user.segment,
@@ -127,6 +166,9 @@ function fireBatch(batchSize = 40) {
       vip: user.vip,
       total_deposits: user.totalDeposits,
       preferred_game_type: user.preferredGame,
+      utm_source:   utmChannel.utm_source,
+      utm_medium:   utmChannel.utm_medium,
+      utm_campaign: utmChannel.utm_campaign,
     });
 
     // Pick a realistic event sequence for this user
